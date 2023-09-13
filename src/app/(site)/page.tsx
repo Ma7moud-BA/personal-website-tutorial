@@ -1,10 +1,12 @@
-import { getProjects } from "@/sanity/sanity-utils";
+import { getPages, getProjects } from "@/sanity/sanity-utils";
 import Image from "next/image";
 import Link from "next/link";
 export default async function Home() {
 	const projects = await getProjects();
+	const pages = await getPages();
+	console.log(pages);
 	return (
-		<div className="max-w-5xl mx-auto py-20">
+		<div>
 			<h1 className="text-7xl font-extrabold">
 				Hello I&apos;m{" "}
 				<span className="bg-gradient-to-r from-green-400  to-yellow-400 bg-clip-text text-transparent">
