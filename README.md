@@ -39,20 +39,23 @@ export default defineConfig({
 	dataset: "production",
 	title: "project title",
 	basePath: "/admin",
+	apiVersion: "2021-10-21",
 	plugins: [deskTool()],
 });
 ```
+
+##### note: the schemas will be added later to this file
 
 - basePath
   is the url for where we want our sanity studio to live, so if you have a website and you want to have people edit content at /admin then make the basePath:/admin
 - deskTool
   is a top level view within the sanity studio we need this plugin to view our studio
 
-4. make a catch all routes for /admin so anything you type after /admin gets sent to one route `admin/[[...index]]/page.tsx` this will catch /admin and /admin/anything/anything.....
-5. turn this route to a client page import `{NextStudio} from "next-sanity/studio` component and the configuration you made from the sanity.config file`import config from "@sanity.config`
+1. make a catch all routes for /admin so anything you type after /admin gets sent to one route `admin/[[...index]]/page.tsx` this will catch /admin and /admin/anything/anything.....
+2. turn this route to a client page import `{NextStudio} from "next-sanity/studio` component and the configuration you made from the sanity.config file`import config from "@sanity.config`
    this page should return the `<NextStudio>` component with the configuration
 
-6. head over to localhost:3000/admin and you should see the studio running
+3. head over to localhost:3000/admin and you should see the studio running
 
 ```javascript
 "use client";
@@ -69,7 +72,9 @@ export default AdminPage;
 # Creating Schemas
 
 1. create a folder in the src directory and name it sanity, in that folder make a schemas folder to hold all the project schemas
-2. create a schema file
+2. create a schema file `ex:product-schema.ts`
+
+#### product-schema.ts
 
 ```javascript
 const project = {
@@ -107,31 +112,95 @@ export default project;
 
 check out the official docs for more infos about schemas
 
-3. create an index file to export the schemas all at once for easier importing
+3. create a `index.ts` fils in the schemas dir for easier exporting for all the schemas
+
+#### index.ts
+
+```javascript
+import product from "./product-schema";
+import page from "./page-schema";
+const schemas = [product, page];
+
+export default schemas;
+```
+
 4. import the schemas from the schemas/index into the sanity.config file
+
+```javascript
+import { defineConfig } from "sanity";
+import { deskTool } from "sanity/desk";
+import schemas from "./sanity/schemas";
+
+export default defineConfig({
+	projectId: "your_project_id",
+	dataset: "production",
+	title: "project_title",
+	basePath: "/admin",
+	apiVersion: "2021-10-21", // or other versions
+	plugins: [deskTool()],
+	schema: { types: schemas },
+});
+```
+
 5. head over to the studio to see the project schema.
 6. add few projects
 
 # Creating Utilities for grabbing data
 
-1. create a sanity-utils.ts file in the sanity folder
-2. import `'createClient' and 'groq' from next-sanity`
-3. create a function to fetch the data
-4. construct a client to interact with the data, provide the project id and other configurations
-5. write the groq query for this function
-6. call this function where ever you want in the app to get the data
+1. Create a sanity-utils.ts file in the sanity folder
+2. Import `'createClient' and 'groq' from next-sanity`
+3. Create a function to fetch the data
+4. Construct a client to interact with the data, provide the project id and other configurations
+5. To avoid repetition of the client configurations, create a `config` folder in the sanity folder then create a file in it `client-config.ts`
 
-```javascript
-export const getProjects = async () => {
-	const client = createClient({
-		projectId: "70d9r2p3",
-		dataset: "production",
-		apiVersion: "2021-10-21",
-	});
+   #### client-config.ts
+
+   ```javascript
+   const config = {
+   	projectId: "projectId",
+   	dataset: "production",
+   	apiVersion: "2021-10-21",
+   	useCdn: false,
+   };
+   export default config;
+   ```
+
+6. write the `GROQ` query for this function
+7. call this function where ever you want in the app to get the data
+
+```typescript
+import { Project } from "@/types/Project";
+import { createClient, groq } from "next-sanity";
+import config from "./config/clinet-config";
+export const getProjects = async (): Promise<Project[]> => {
+	const client = createClient(config);
+
 	return client.fetch(
 		groq`*[_type=="project"]{
-    _id,_createdAt,name,"slug":slug.current,"image":image.asset->url,url,content
+    _id,_createdAt,name,"slug":slug.current,"image":image.asset->url,url,content,alt
 }`
 	);
+};
+```
+
+# Types
+
+1. create a types folder if you are using typescript
+2. create a `ex:Project.ts` file to hold the types
+
+#### Project.ts
+
+```typescript
+import { PortableTextBlock } from "sanity";
+
+export type Project = {
+	url: string;
+	content: PortableTextBlock[];
+	_id: string;
+	_createdAt: string;
+	name: string;
+	slug: string;
+	image: string;
+	alt: string;
 };
 ```
